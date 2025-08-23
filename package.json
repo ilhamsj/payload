@@ -27,7 +27,8 @@
     "graphql": "^16.8.1",
     "next": "15.4.4",
     "payload": "3.53.0",
-    "react": "19.1.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
     "sharp": "0.34.2",
     "@payloadcms/db-postgres": "3.53.0"
   },
@@ -39,6 +40,7 @@
     "@types/react-dom": "19.1.6",
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "^9.16.0",
+    "@eslint/eslintrc": "^3.2.0",
     "eslint-config-next": "15.4.4",
     "jsdom": "26.1.0",
     "playwright": "1.54.1",
