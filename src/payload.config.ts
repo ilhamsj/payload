@@ -10,6 +10,7 @@ import fs from 'fs'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { migrations } from './migrations'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -38,6 +39,8 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URI || '',
       ...(certificate ? { ssl: { ca: certificate, rejectUnauthorized: false } } : {}),
     },
+    push: process.env.NODE_ENV !== 'production',
+    prodMigrations: migrations,
   }),
   sharp,
   plugins: [
