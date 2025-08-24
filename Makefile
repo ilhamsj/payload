@@ -7,6 +7,8 @@ DOCKER_TAG=latest
 PLATFORM?=linux/amd64
 PLATFORMS?=linux/amd64,linux/arm64
 BUILDER_NAME?=multiarch
+CACHE_TAG?=$(DOCKER_IMAGE_NAME):buildcache
+REMOTE_CONTEXT?=
 
 # Colors for pretty output
 GREEN=\033[0;32m
@@ -33,7 +35,25 @@ release: build push ## Build and push image to Docker Hub
 
 release-multi: ## Build and push multi-arch image to Docker Hub (run 'make builder-init' once)
 	@echo "$(GREEN)Building and pushing multi-arch image...$(NC)"
-	docker buildx build --builder $(BUILDER_NAME) --platform $(PLATFORMS) -t $(DOCKER_IMAGE_NAME):$(DOCKER_TAG) --push .
+	docker buildx build \
+	  --builder $(BUILDER_NAME) \
+	  --platform $(PLATFORMS) \
+	  -t $(DOCKER_IMAGE_NAME):$(DOCKER_TAG) \
+	  --cache-from type=registry,ref=$(CACHE_TAG) \
+	  --cache-to type=registry,ref=$(CACHE_TAG),mode=max \
+	  --provenance=false --sbom=false \
+	  --push .
+
+release-multi-fast: ## Same as release-multi, but fails if cache not available
+	@echo "$(GREEN)Building multi-arch with aggressive cache...$(NC)"
+	docker buildx build \
+	  --builder $(BUILDER_NAME) \
+	  --platform $(PLATFORMS) \
+	  -t $(DOCKER_IMAGE_NAME):$(DOCKER_TAG) \
+	  --cache-from type=registry,ref=$(CACHE_TAG) \
+	  --cache-to type=registry,ref=$(CACHE_TAG),mode=max \
+	  --provenance=false --sbom=false \
+	  --push .
 
 builder-init: ## Create and bootstrap a Buildx builder for multi-arch
 	@echo "$(GREEN)Creating buildx builder '$(BUILDER_NAME)'...$(NC)"
@@ -43,6 +63,15 @@ builder-init: ## Create and bootstrap a Buildx builder for multi-arch
 builder-rm: ## Remove the Buildx builder
 	@echo "Removing buildx builder '$(BUILDER_NAME)'..."
 	-docker buildx rm $(BUILDER_NAME)
+
+builder-init-remote: ## Create a remote builder (set REMOTE_CONTEXT=ssh://user@host or a docker context name)
+	@if [ -z "$(REMOTE_CONTEXT)" ]; then \
+	  echo "REMOTE_CONTEXT is empty. Set REMOTE_CONTEXT=ssh://user@host or an existing docker context name"; \
+	  exit 1; \
+	fi
+	@echo "$(GREEN)Creating remote buildx builder '$(BUILDER_NAME)' on $(REMOTE_CONTEXT)...$(NC)"
+	-docker buildx create --name $(BUILDER_NAME) --driver docker-container --use --node $(BUILDER_NAME)0 --platform $(PLATFORMS) $(REMOTE_CONTEXT)
+	docker buildx inspect --builder $(BUILDER_NAME) --bootstrap
 
 # run the app
 run: ## Run the app
