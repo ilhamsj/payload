@@ -17,7 +17,8 @@ const dirname = path.dirname(filename)
 /**
  * Read the certificate from the file system
  */
-const certificate = fs.readFileSync(process.env.POSTGRES_SSL_CA_PATH!, 'utf8')
+const caPath = process.env.POSTGRES_SSL_CA_PATH
+const certificate = caPath && fs.existsSync(caPath) ? fs.readFileSync(caPath, 'utf8') : null
 
 export default buildConfig({
   admin: {
@@ -35,10 +36,7 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
-      ssl: {
-        rejectUnauthorized: false,
-        ca: certificate,
-      },
+      ...(certificate ? { ssl: { ca: certificate, rejectUnauthorized: false } } : {}),
     },
   }),
   sharp,
